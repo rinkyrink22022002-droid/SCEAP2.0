@@ -228,6 +228,7 @@ def bulk_size_cables(data: List[CableInput]):
 			"msg": "Derating OK" if derate_ok else "Derating exceeds selected conductor capacity"
 		})
 
+
 		# Grouping-factor check: product of derating factors indicates grouping/installation derating
 		grouping_factor = 1.0
 		try:
@@ -236,8 +237,8 @@ def bulk_size_cables(data: List[CableInput]):
 		except Exception:
 			grouping_factor = 1.0
 
-		# Threshold: if grouping_factor reduces capacity by more than 15% (i.e. < 0.85), flag for review
-		grouping_threshold = 0.85
+		# Use optional per-request grouping_threshold when provided, otherwise default
+		grouping_threshold = float(getattr(cable, 'grouping_threshold', 0.85) or 0.85)
 		grouping_ok = grouping_factor >= grouping_threshold
 		grouping_margin = None
 		try:
@@ -248,26 +249,38 @@ def bulk_size_cables(data: List[CableInput]):
 		compliance.append({
 			"type": "grouping",
 			"ok": bool(grouping_ok),
-			"limit": round(grouping_threshold, 2),
+			"limit": round(grouping_threshold, 3),
 			"value": round(grouping_factor, 3),
 			"margin": grouping_margin,
 			"msg": f"Grouping factor {round(grouping_factor,3)} ({grouping_margin}% reduction)"
 		})
 
-		# Thermal rating check: compare derated current to a conductor rating proxy (selected_csa used as placeholder)
+
+		# Thermal rating check: prefer catalog rated currents if supplied by frontend, otherwise fall back to selected_csa proxy
+		rated_current = None
+		# prefer air rating, then trench, then duct, then selected_csa as a very rough proxy
+		try:
+			rated_current = float(getattr(cable, 'catalog_rated_current_air', None) or getattr(cable, 'catalog_rated_current_trench', None) or getattr(cable, 'catalog_rated_current_duct', None) or 0)
+		except Exception:
+			rated_current = 0
+
+		if not rated_current and selected_csa:
+			# simple proxy: map CSA to a nominal current (existing behavior); keep using selected_csa as proxy
+			rated_current = float(selected_csa or 0)
+
 		thermal_ok = True
 		thermal_margin = None
 		try:
-			if selected_csa and selected_csa > 0:
-				thermal_ok = (i_derated <= selected_csa)
-				thermal_margin = round(((selected_csa - i_derated) / (selected_csa or 1)) * 100, 1)
+			if rated_current and rated_current > 0:
+				thermal_ok = (i_derated <= rated_current)
+				thermal_margin = round(((rated_current - i_derated) / (rated_current or 1)) * 100, 1)
 		except Exception:
 			thermal_ok = False
 
 		compliance.append({
 			"type": "thermal",
 			"ok": bool(thermal_ok),
-			"limit": round(selected_csa or 0, 2),
+			"limit": round(rated_current or 0, 2),
 			"value": round(i_derated, 2),
 			"margin": thermal_margin,
 			"msg": "Thermal rating OK" if thermal_ok else "Thermal rating exceeded for selected conductor"
