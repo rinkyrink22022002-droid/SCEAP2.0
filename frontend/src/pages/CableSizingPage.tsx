@@ -45,12 +45,7 @@ const CableSizingPage: React.FC = () => {
     }
   };
 
-  const handleBulkCalculate = (rows: (BulkRow & { result?: CableOutput })[]) => {
-    setBulkResults(rows);
-    setSelectedResult(rows[0]?.result);
-    setPageState('results');
-    setIsBulkMode(true);
-  };
+  // Bulk calculate handled via CableBulkTable component directly
 
   const handleApproveCable = (cableNumber: string, approved: boolean) => {
     setApprovedCables((prev) => {

@@ -2,11 +2,6 @@
 import React, { useState } from 'react';
 import type { CableOutput, BulkRow } from '../../types/cable';
 
-interface ApprovedCable extends CableOutput {
-  approvedAt?: string;
-  notes?: string;
-}
-
 interface Props {
   results: (BulkRow & { result?: CableOutput })[];
   onSelectCable: (result: CableOutput) => void;
@@ -16,7 +11,6 @@ interface Props {
 
 const SizingResultsTable: React.FC<Props> = ({ results, onSelectCable, onApproveCable, onExport }) => {
   const [approvedCables, setApprovedCables] = useState<Set<string>>(new Set());
-  const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
 
   const toggleApproval = (cableNumber: string) => {
     setApprovedCables((prev) => {
@@ -128,7 +122,7 @@ const SizingResultsTable: React.FC<Props> = ({ results, onSelectCable, onApprove
             </tr>
           </thead>
           <tbody>
-            {results.map((row, idx) => {
+            {results.map((row) => {
               const r = row.result;
               const isApproved = approvedCables.has(row.cable_number);
               const bg = isApproved
