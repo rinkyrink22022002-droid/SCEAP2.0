@@ -1,34 +1,126 @@
-# SCEAP2.0
-Smart Cable Engineering Automation Platform
+# SCEAP 2.0 — Smart Cable Engineering Automation Platform
 
-## Quick Start (Codespaces)
+A modern, full-stack web platform for power plant cable engineering automation. Replaces Excel-based workflows with intelligent, real-time calculations for cable sizing, voltage drop analysis, short-circuit verification, and bulk operations.
 
-1. Start the backend server (inside `/workspaces/SCEAP2.0/backend`)
+## 🎯 Features
 
+### Current (MVP)
+- **Cable Sizing** (Single & Bulk)
+  - Full load current (FLC) calculation (kW, kVA, or Direct Current)
+  - Derating factor support
+  - Voltage drop calculation using mV/A/m method
+  - Short-circuit duty verification
+  - IEC 60287 & IEEE 80 compliance logic
+  
+- **Bulk Sizing & Export**
+  - Add/edit multiple cable records
+  - Excel/CSV import with column mapping wizard
+  - Real-time sizing for all cables
+  - Export results to CSV or Bill of Quantities (BOQ)
+
+- **Cable Catalogue**
+  - In-memory cable library (1.5 mm² to 240 mm²)
+  - Queryable by CSA, current rating, and description
+
+- **Modern Dark UI**
+  - Gen-Z aesthetic with teal accents
+  - Responsive design (mobile, tablet, desktop)
+  - Smooth animations and accessibility
+
+## 🏗️ Architecture
+
+### Frontend
+- React 19 + TypeScript
+- Vite + Tailwind CSS v4
+- Axios API client with smart base URL detection
+- React hooks for state management
+
+### Backend
+- FastAPI (Python 3.12+)
+- Uvicorn server
+- Pure Python calculation engine
+- pandas + openpyxl for Excel support
+- Pydantic for validation
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- Python 3.12+
+- Poetry
+
+### Development
+
+#### Backend (Terminal 1)
 ```bash
-poetry install  # if running for the first time
-poetry run uvicorn main:app --reload --port 8000
+cd backend
+poetry install
+poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-2. Make port 8000 public in Codespaces `Ports` tab. Copy the forwarded URL (it looks like `https://<id>-8000.app.github.dev`).
+API docs: http://localhost:8000/docs
 
-3. Configure frontend to use that backend public URL by creating/updating `frontend/.env`:
-
+#### Frontend (Terminal 2)
 ```bash
 cd frontend
-cat > .env <<EOF
-VITE_API_BASE=https://<id>-8000.app.github.dev
-EOF
-```
-
-4. Start the frontend (inside `/workspaces/SCEAP2.0/frontend`)
-
-```bash
 npm install
-npm run dev -- --host 0.0.0.0 --port 5173
+npm run dev
 ```
 
-5. Make port 5173 public, and open the public forwarded URL. Click `Run Cable Sizing Engine`.
+Frontend: http://localhost:5173
 
-If nothing updates in the UI, open the browser console and verify the `[VITE] VITE_API_BASE` and `[API] Using baseURL:` log lines to confirm the frontend is using the correct backend URL. Also check the network tab request to `/cable/size` and the backend logs.
+### API Endpoints
 
+- `POST /cable/size` — Size a single cable
+- `POST /cable/bulk-size` — Size multiple cables
+- `POST /cable/upload` — Upload Excel file
+- `POST /cable/map-upload` — Map columns and import
+- `GET /cable/catalog` — Query cable catalogue
+- `GET /` — Health check
+
+## 🌐 Deployment
+
+### Render
+
+**Backend**:
+- Runtime: Python 3.12
+- Build: `pip install poetry && poetry install`
+- Start: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+
+**Frontend**:
+- Build: `cd frontend && npm install && npm run build`
+- Publish Dir: `frontend/dist`
+- Env: `VITE_API_BASE=https://your-backend.onrender.com`
+
+## 📖 Key Formulas
+
+### Full Load Current
+```
+I = P(kW) / (√3 × V × pf × eff)
+```
+
+### Voltage Drop
+```
+Vd% = (√3 × I × L × mV/A/m) / V × 100
+```
+
+### Short-Circuit Check
+```
+A_required = Isc × √t / k
+```
+
+## 🎨 Design System
+
+- **Colors**: Dark navy (#050814) with teal accents (#06b6d4)
+- **Animations**: fadeIn, slideUp, pulseGlow
+- **Focus States**: Full keyboard accessibility
+
+## 📄 License
+
+MIT License
+
+---
+
+**Current Version**: v0.1 (MVP)  
+**Status**: Active Development  
+**Last Updated**: November 2025

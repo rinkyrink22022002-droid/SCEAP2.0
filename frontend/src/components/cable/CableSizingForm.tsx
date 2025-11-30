@@ -7,10 +7,69 @@ interface Props {
   loading: boolean;
 }
 
-const defaultCSAOptions = [25, 35, 50, 70, 95, 120, 150, 185, 240];
+const defaultCSAOptions = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+
+interface FormState {
+  cable_number: string;
+  load_kw: number;
+  load_kva: number;
+  current: number;
+  voltage: number;
+  pf: number;
+  eff: number;
+  length: number;
+  mv_per_a_m: number;
+  derating1: number;
+  derating2: number;
+  sc_current: number;
+  sc_time: number;
+  k_const: number;
+}
+
+interface FormErrors {
+  [key: string]: string;
+}
+
+const validateForm = (form: FormState): FormErrors => {
+  const errors: FormErrors = {};
+
+  if (!form.cable_number.trim()) {
+    errors.cable_number = 'Cable number is required';
+  }
+
+  if (form.voltage <= 0) {
+    errors.voltage = 'Voltage must be positive';
+  }
+
+  if (form.load_kw < 0 && form.load_kva < 0 && form.current < 0) {
+    errors.load = 'Enter at least one of: Load (kW), Load (kVA), or Current';
+  }
+
+  if (form.length < 0) {
+    errors.length = 'Length cannot be negative';
+  }
+
+  if (form.mv_per_a_m < 0) {
+    errors.mv_per_a_m = 'mV/A/m must be non-negative';
+  }
+
+  if (form.pf <= 0 || form.pf > 1) {
+    errors.pf = 'Power factor must be between 0 and 1';
+  }
+
+  if (form.eff <= 0 || form.eff > 1) {
+    errors.eff = 'Efficiency must be between 0 and 1';
+  }
+
+  if (form.derating1 <= 0 || form.derating2 <= 0) {
+    errors.derating = 'Derating factors must be positive';
+  }
+
+  return errors;
+};
 
 const CableSizingForm: React.FC<Props> = ({ onCalculate, loading }) => {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     cable_number: 'CBL-001',
     load_kw: 55,
     load_kva: 0,
@@ -27,16 +86,42 @@ const CableSizingForm: React.FC<Props> = ({ onCalculate, loading }) => {
     k_const: 115,
   });
 
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const numValue = value === '' ? 0 : Number(value);
+    
     setForm((prev) => ({
       ...prev,
-      [name]: value === '' ? '' : Number.isNaN(Number(value)) ? value : Number(value),
+      [name]: Number.isNaN(numValue) ? value : numValue,
     }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    setTouched((prev) => new Set([...prev, name]));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const validationErrors = validateForm(form);
+    setErrors(validationErrors);
+    
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
 
     const payload: CableInput = {
       cable_number: form.cable_number,
@@ -58,6 +143,37 @@ const CableSizingForm: React.FC<Props> = ({ onCalculate, loading }) => {
     onCalculate(payload);
   };
 
+  const inputClass = (fieldName: string) => {
+    const hasError = touched.has(fieldName) && errors[fieldName];
+    return `w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border ${
+      hasError ? 'border-rose-500/60' : 'border-sceap-border'
+    } focus:outline-none focus:border-sceap-accent-soft text-xs transition-colors`;
+  };
+
+  const renderInputField = (label: string, name: keyof FormState, type: string = 'number', step?: string) => {
+    const hasError = touched.has(name) && errors[name];
+    return (
+      <div>
+        <label className="block text-[11px] text-slate-400 mb-1">
+          {label}
+          {hasError && <span className="text-rose-400 ml-1">*</span>}
+        </label>
+        <input
+          name={name}
+          type={type}
+          step={step}
+          value={form[name]}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={inputClass(name)}
+        />
+        {hasError && (
+          <span className="text-[10px] text-rose-400 mt-0.5 block">{errors[name]}</span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -75,165 +191,67 @@ const CableSizingForm: React.FC<Props> = ({ onCalculate, loading }) => {
         </span>
       </div>
 
+      {Object.keys(errors).length > 0 && (
+        <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px]">
+          Please fix the errors above before calculating.
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div className="col-span-2">
-          <label className="block text-[11px] text-slate-400 mb-1">Cable Number</label>
-          <input
-            name="cable_number"
-            value={form.cable_number}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, cable_number: e.target.value }))
-            }
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Cable Number', 'cable_number', 'text')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Load (kW)</label>
-          <input
-            name="load_kw"
-            type="number"
-            value={form.load_kw}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Load (kW)', 'load_kw')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Load (kVA)</label>
-          <input
-            name="load_kva"
-            type="number"
-            value={form.load_kva}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Load (kVA)', 'load_kva')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Current (A)</label>
-          <input
-            name="current"
-            type="number"
-            value={form.current}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Current (A)', 'current')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Voltage (V)</label>
-          <input
-            name="voltage"
-            type="number"
-            value={form.voltage}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Voltage (V)', 'voltage')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Power Factor</label>
-          <input
-            name="pf"
-            type="number"
-            step="0.01"
-            value={form.pf}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Power Factor', 'pf', 'number', '0.01')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Efficiency</label>
-          <input
-            name="eff"
-            type="number"
-            step="0.01"
-            value={form.eff}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Efficiency', 'eff', 'number', '0.01')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Length (m)</label>
-          <input
-            name="length"
-            type="number"
-            value={form.length}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Length (m)', 'length')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">mV / A / m</label>
-          <input
-            name="mv_per_a_m"
-            type="number"
-            step="0.001"
-            value={form.mv_per_a_m}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('mV / A / m', 'mv_per_a_m', 'number', '0.001')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Derating 1</label>
-          <input
-            name="derating1"
-            type="number"
-            step="0.01"
-            value={form.derating1}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Derating 1', 'derating1', 'number', '0.01')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Derating 2</label>
-          <input
-            name="derating2"
-            type="number"
-            step="0.01"
-            value={form.derating2}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('Derating 2', 'derating2', 'number', '0.01')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">SC Current (A)</label>
-          <input
-            name="sc_current"
-            type="number"
-            value={form.sc_current}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('SC Current (A)', 'sc_current')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">SC Time (s)</label>
-          <input
-            name="sc_time"
-            type="number"
-            value={form.sc_time}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('SC Time (s)', 'sc_time')}
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">k Constant</label>
-          <input
-            name="k_const"
-            type="number"
-            value={form.k_const}
-            onChange={handleChange}
-            className="w-full px-2 py-1.5 rounded-lg bg-sceap-panel/70 border border-sceap-border focus:outline-none focus:border-sceap-accent-soft text-xs"
-          />
+          {renderInputField('k Constant', 'k_const')}
         </div>
       </div>
 

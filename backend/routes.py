@@ -8,6 +8,7 @@ from cable_engine import (
 	voltage_drop_percent,
 	short_circuit_check,
 )
+from models import CableQueryFilter, filter_catalog
 from fastapi import UploadFile, File, HTTPException
 import pandas as pd
 import uuid
@@ -181,4 +182,22 @@ def map_upload(payload: dict):
 		results.append(out)
 
 	return results
+
+
+@router.get('/catalog')
+def get_cable_catalog(min_csa: float = None, max_csa: float = None, min_rating: float = None, search: str = None):
+	"""Get cable catalog filtered by criteria."""
+	params = CableQueryFilter(
+		min_csa=min_csa,
+		max_csa=max_csa,
+		min_current_rating=min_rating,
+		search=search
+	)
+	return filter_catalog(params)
+
+
+@router.post('/catalog/search')
+def search_cable_catalog(params: CableQueryFilter):
+	"""Search cable catalog with filter parameters."""
+	return filter_catalog(params)
 
