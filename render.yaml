@@ -10,11 +10,12 @@ services:
         value: "1"
     plan: free
 
-  - type: static
+  - type: web
     name: sceap-frontend
+    runtime: node
     buildCommand: "cd frontend && npm install && npm run build"
-    publishPath: "frontend/dist"
+    startCommand: "cd frontend && npm install -g serve && serve -s dist -l $PORT"
     envVars:
       - key: VITE_API_BASE
-        sync: false
+        value: "https://sceap-backend.onrender.com"
     plan: free
