@@ -14,4 +14,7 @@ services:
     runtime: node
     buildCommand: cd frontend && npm install && npm run build
     startCommand: npm install -g serve && serve -s frontend/dist -l $PORT
+    envVars:
+      - key: BUILD_CACHE_BUSTER
+        value: "2024-12-01-v2"
     plan: free
