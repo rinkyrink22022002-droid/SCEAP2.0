@@ -3,8 +3,8 @@ services:
     name: sceap-backend
     runtime: python
     pythonVersion: "3.11"
-    buildCommand: "pip install poetry && poetry install"
-    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    buildCommand: pip install poetry && poetry install
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
@@ -13,9 +13,6 @@ services:
   - type: web
     name: sceap-frontend
     runtime: node
-    buildCommand: "cd frontend && npm install && npm run build"
-    startCommand: "npm install -g serve && serve -s frontend/dist -l $PORT"
-    envVars:
-      - key: VITE_API_BASE
-        value: "https://sceap-backend.onrender.com"
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: npm install -g serve && serve -s frontend/dist -l $PORT
     plan: free
