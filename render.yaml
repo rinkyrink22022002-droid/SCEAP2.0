@@ -14,7 +14,7 @@ services:
     name: sceap-frontend
     runtime: node
     buildCommand: "cd frontend && npm install && npm run build"
-    startCommand: "cd frontend && npm install -g serve && serve -s dist -l $PORT"
+    startCommand: "npm install -g serve && serve -s frontend/dist -l $PORT"
     envVars:
       - key: VITE_API_BASE
         value: "https://sceap-backend.onrender.com"
