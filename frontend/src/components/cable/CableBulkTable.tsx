@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { BulkRow } from '../../types/cable';
-import type { CableInput, CableOutput } from '../../types/cable';
+import type { BulkRow, CableInput, CableOutput } from '../../types/cable';
 import { api } from '../../api/client';
 import CableUploadWizard from './CableUploadWizard';
 
