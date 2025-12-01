@@ -17,4 +17,6 @@ services:
     envVars:
       - key: BUILD_CACHE_BUSTER
         value: "2024-12-01-v2"
+      - key: VITE_API_BASE
+        value: "https://sceap-backend.onrender.com"
     plan: free
