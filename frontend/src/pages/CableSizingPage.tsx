@@ -1,5 +1,5 @@
 // frontend/src/pages/CableSizingPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LayoutShell from '../components/layout/LayoutShell';
 import CableSizingForm from '../components/cable/CableSizingForm';
 import CableResultsPanel from '../components/cable/CableResultsPanel';
@@ -21,6 +21,25 @@ const CableSizingPage: React.FC = () => {
   const [approvedCables, setApprovedCables] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isBulkMode, setIsBulkMode] = useState(false);
+  const [apiBase, setApiBase] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<'unknown' | 'up' | 'down'>('unknown');
+
+  useEffect(() => {
+    try {
+      const base = (api && (api.defaults as any) && (api.defaults as any).baseURL) || null;
+      setApiBase(base);
+      if (!base) {
+        setApiStatus('down');
+        return;
+      }
+      api
+        .get('/')
+        .then(() => setApiStatus('up'))
+        .catch(() => setApiStatus('down'));
+    } catch (e) {
+      setApiStatus('down');
+    }
+  }, []);
 
   const handleSingleCalculate = async (payload: CableInput) => {
     try {
@@ -139,6 +158,20 @@ const CableSizingPage: React.FC = () => {
   if (pageState === 'input') {
     return (
       <LayoutShell>
+        {/* API connectivity banner for easier debugging on deployed builds */}
+        <div className="mb-3">
+          <div className="text-xs text-slate-300/70">API Base: <span className="font-mono text-slate-100">{apiBase ?? 'not-set'}</span></div>
+          {apiStatus === 'down' && (
+            <div className="mt-2 p-2 rounded-md bg-rose-900/60 border border-rose-800 text-rose-100 text-sm">
+              ⚠️ API unreachable. The frontend cannot contact the backend — check `VITE_API_BASE` and deployment. Current base shown above.
+            </div>
+          )}
+          {apiStatus === 'up' && (
+            <div className="mt-2 p-2 rounded-md bg-emerald-900/30 border border-emerald-700 text-emerald-200 text-sm">
+              ✅ Backend reachable ({apiBase})
+            </div>
+          )}
+        </div>
         <div className="flex flex-col gap-4 md:gap-6">
           <div className="flex items-center justify-between">
             <div>
